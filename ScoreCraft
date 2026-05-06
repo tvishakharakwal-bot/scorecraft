@@ -1,0 +1,230 @@
+import { useState, useMemo, useEffect } from "react";
+
+export default function ScoreCraft() {
+  const [courses, setCourses] = useState([]);
+  const [name, setName] = useState("");
+  const [grade, setGrade] = useState("A");
+  const [credits, setCredits] = useState(1);
+  const [user, setUser] = useState("");
+  const [tempUser, setTempUser] = useState("");
+  const [history, setHistory] = useState([]);
+
+  const gradePoints = {
+    A: 4,
+    "A-": 3.7,
+    "B+": 3.3,
+    B: 3.0,
+    "B-": 2.7,
+    "C+": 2.3,
+    C: 2.0,
+    "C-": 1.7,
+    D: 1.0,
+    F: 0
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    const saved = localStorage.getItem(`scorecraft_${user}`);
+    if (saved) {
+      const data = JSON.parse(saved);
+      setCourses(data.courses || []);
+      setHistory(data.history || []);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    localStorage.setItem(
+      `scorecraft_${user}`,
+      JSON.stringify({ courses, history })
+    );
+  }, [courses, history, user]);
+
+  const gpa = useMemo(() => {
+    if (!courses.length) return 0;
+    let total = 0;
+    let creditsSum = 0;
+
+    courses.forEach(c => {
+      total += (gradePoints[c.grade] || 0) * c.credits;
+      creditsSum += c.credits;
+    });
+
+    return creditsSum ? (total / creditsSum).toFixed(2) : 0;
+  }, [courses]);
+
+  const addCourse = () => {
+    if (!name) return;
+    setCourses([...courses, { name, grade, credits: Number(credits) }]);
+    setName("");
+  };
+
+  const saveSnapshot = () => {
+    setHistory([...history, { gpa: Number(gpa) }]);
+  };
+
+  const login = () => {
+    setUser(tempUser);
+  };
+
+  return (
+    <div style={styles.page}>
+
+      {/* Header */}
+      <div style={styles.header}>
+        <h1 style={styles.logo}>ScoreCraft</h1>
+
+        {!user ? (
+          <div style={styles.loginBox}>
+            <input
+              style={styles.input}
+              placeholder="Username"
+              value={tempUser}
+              onChange={(e) => setTempUser(e.target.value)}
+            />
+            <button style={styles.button} onClick={login}>Enter</button>
+          </div>
+        ) : (
+          <p style={styles.welcome}>Welcome, {user}</p>
+        )}
+      </div>
+
+      {/* Hero */}
+      <div style={styles.hero}>
+        <h2>Build. Track. Improve.</h2>
+        <p>Brown-toned academic system for GPA tracking and growth.</p>
+      </div>
+
+      {/* GPA Card */}
+      <div style={styles.card}>
+        <h2>Current GPA</h2>
+        <div style={styles.gpaCircle}>{gpa}</div>
+        <button style={styles.button} onClick={saveSnapshot}>
+          Save Snapshot
+        </button>
+      </div>
+
+      {/* Add Course */}
+      <div style={styles.card}>
+        <h2>Add Course</h2>
+        <input
+          style={styles.input}
+          placeholder="Course name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <select
+          style={styles.input}
+          value={grade}
+          onChange={(e) => setGrade(e.target.value)}
+        >
+          {Object.keys(gradePoints).map((g) => (
+            <option key={g}>{g}</option>
+          ))}
+        </select>
+
+        <input
+          style={styles.input}
+          type="number"
+          value={credits}
+          onChange={(e) => setCredits(e.target.value)}
+        />
+
+        <button style={styles.button} onClick={addCourse}>
+          Add
+        </button>
+      </div>
+
+      {/* Courses */}
+      <div style={styles.card}>
+        <h2>Courses</h2>
+        {courses.length === 0 && <p>No courses yet.</p>}
+
+        {courses.map((c, i) => (
+          <div key={i} style={styles.row}>
+            <span>{c.name}</span>
+            <span>{c.grade} • {c.credits}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* History */}
+      <div style={styles.card}>
+        <h2>Progress</h2>
+        {history.length === 0 ? (
+          <p>No snapshots yet.</p>
+        ) : (
+          history.map((h, i) => (
+            <div key={i} style={styles.barContainer}>
+              <div style={{ ...styles.bar, width: `${h.gpa * 25}%` }} />
+              <span>{h.gpa}</span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    padding: "20px",
+    background: "linear-gradient(#3b2a1a, #1a120b)",
+    color: "#f5e6d3",
+    fontFamily: "Arial"
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  logo: { fontSize: "24px" },
+  loginBox: { display: "flex", gap: "10px" },
+  welcome: { opacity: 0.8 },
+  hero: { textAlign: "center", margin: "20px 0" },
+  card: {
+    background: "#2b1d14",
+    padding: "15px",
+    margin: "10px 0",
+    borderRadius: "10px"
+  },
+  input: {
+    display: "block",
+    margin: "5px 0",
+    padding: "8px",
+    borderRadius: "6px",
+    border: "none",
+    width: "100%"
+  },
+  button: {
+    padding: "8px 12px",
+    background: "#a47148",
+    border: "none",
+    borderRadius: "6px",
+    color: "white",
+    cursor: "pointer"
+  },
+  gpaCircle: {
+    fontSize: "40px",
+    textAlign: "center",
+    margin: "10px 0"
+  },
+  row: {
+    display: "flex",
+    justifyContent: "space-between",
+    borderBottom: "1px solid #444",
+    padding: "5px 0"
+  },
+  barContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    margin: "5px 0"
+  },
+  bar: {
+    height: "10px",
+    background: "#a47148"
+  }
+};
